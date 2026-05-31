@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String
+  program   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments  Enrollment[]
+  submissions  Submission[]
+  grades       Grade[]
+  notifications Notification[]
+  taughtCourses Course[]      @relation("TeacherCourses")
+}
+
+model Course {
+  id        String      @id @default(uuid())
+  courseId  String      @unique
+  name      String
+  credits   Int
+  teacherId String?
+  teacher   User?       @relation("TeacherCourses", fields: [teacherId], references: [id])
+  createdAt DateTime    @default(now())
+
+  materials   Material[]
+  assignments Assignment[]
+  enrollments Enrollment[]
+  grades      Grade[]
+}
+
+model Enrollment {
+  id       String @id @default(uuid())
+  userId   String
+  courseId String
+  user     User   @relation(fields: [userId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model Material {
+  id             String    @id @default(uuid())
+  courseId       String
+  title          String
+  type           String
+  fileUrl        String
+  visibilityDate DateTime?
+  createdAt      DateTime  @default(now())
+  course         Course    @relation(fields: [courseId], references: [id])
+}
+
+model Assignment {
+  id        String       @id @default(uuid())
+  courseId  String
+  title     String
+  dueDate   DateTime?
+  createdAt DateTime     @default(now())
+  course    Course       @relation(fields: [courseId], references: [id])
+  submissions Submission[]
+}
+
+model Submission {
+  id           String   @id @default(uuid())
+  assignmentId String
+  userId       String
+  fileUrl      String
+  timestamp    DateTime @default(now())
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@unique([assignmentId, userId])
+}
+
+model Grade {
+  id           String   @id @default(uuid())
+  studentId    String
+  courseId     String
+  assignmentId String?
+  score        Float
+  published    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  student      User     @relation(fields: [studentId], references: [id])
+  course       Course   @relation(fields: [courseId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
